@@ -19,12 +19,7 @@ def thumbnail(sender):
     else:
          return None
       
-async def get_msg(userbot, client, bot, sender, edit_id, msg_link, i):
-    
-    """ userbot: PyrogramUserBot
-    client: PyrogramBotClient
-    bot: TelethonBotClient """
-    
+async def get_msg(PyrogramUserBot, PyrogramBotClient, TelethonBotClient, sender, edit_id, msg_link, i):
     edit = ""
     chat = ""
     round_message = False
@@ -146,10 +141,7 @@ async def get_msg(userbot, client, bot, sender, edit_id, msg_link, i):
             return
         except Exception as e:
             print(e)
-            if "messages.SendMedia" in str(e) \
-            or "SaveBigFilePartRequest" in str(e) \
-            or "SendMediaRequest" in str(e) \
-            or str(e) == "File size equals to 0 B":
+            if "messages.SendMedia" in str(e): 
                 try: 
                     if msg.media==MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
                         UT = time.time()
@@ -167,6 +159,32 @@ async def get_msg(userbot, client, bot, sender, edit_id, msg_link, i):
                     if os.path.isfile(file) == True:
                         os.remove(file)
                 except Exception as e:
+                    print(e)
+                    await client.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
+                    try:
+                        os.remove(file)
+                    except Exception:
+                        return
+                    return 
+            elif "SaveBigFilePartRequest" in str(e):
+                try: 
+                    if msg.media==MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
+                        UT = time.time()
+                        uploader = await fast_upload(f'{file}', f'{file}', UT, bot, edit, '**UPLOADING:**')
+                        attributes = [DocumentAttributeVideo(duration=duration, w=width, h=height, round_message=round_message, supports_streaming=True)] 
+                        await bot.send_file(sender, uploader, caption=caption, thumb=thumb_path, attributes=attributes, force_document=False)
+                    elif msg.media==MessageMediaType.VIDEO_NOTE:
+                        uploader = await fast_upload(f'{file}', f'{file}', UT, bot, edit, '**UPLOADING:**')
+                        attributes = [DocumentAttributeVideo(duration=duration, w=width, h=height, round_message=round_message, supports_streaming=True)] 
+                        await bot.send_file(sender, uploader, caption=caption, thumb=thumb_path, attributes=attributes, force_document=False)
+                    else:
+                        UT = time.time()
+                        uploader = await fast_upload(f'{file}', f'{file}', UT, bot, edit, '**UPLOADING:**')
+                        await bot.send_file(sender, uploader, caption=caption, thumb=thumb_path, force_document=True)
+                    if os.path.isfile(file) == True:
+                        os.remove(file)
+                except Exception as e:
+                    print("Telethon tried but failed!")
                     print(e)
                     await client.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
                     try:
@@ -192,15 +210,14 @@ async def get_msg(userbot, client, bot, sender, edit_id, msg_link, i):
         edit = await client.edit_message_text(sender, edit_id, "Cloning.")
         chat =  msg_link.split("/")[-2]
         try:
-            if msg.empty:
-                group = await userbot.get_users(chat)
-                group_link = f't.me/c/{int(group.id)}/{int(msg_id)}'
-                #recurrsion 
-                return await get_msg(userbot, client, bot, sender, edit_id, msg_link, i)
             await client.copy_message(sender, chat, msg_id)
         except Exception as e:
-            print(e)
-            return await client.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
+            if "Empty messages cannot be copied" in str(e):
+                group_link = f't.me/c/{int(msg.sender_chat.id)}/{int(msg.id)}'
+                return await get_msg(PyrogramUserBot, PyrogramBotClient, TelethonBotClient, sender, edit_id, msg_link, i)
+            else:
+                print(e)
+                return await client.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
         await edit.delete()
         
 async def get_bulk_msg(userbot, client, sender, msg_link, i):
