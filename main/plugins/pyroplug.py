@@ -146,7 +146,8 @@ async def get_msg(userbot, client, bot, sender, edit_id, msg_link, i):
             return
         except Exception as e:
             print(e)
-            if "messages.SendMedia" in str(e) \
+            if "SaveBigFilePartRequest" in str(e) or "SendMediaRequest" in str(e) \
+            or "messages.SendMedia" in str(e) \
             or "SaveBigFilePartRequest" in str(e) \
             or "SendMediaRequest" in str(e) \
             or str(e) == "File size equals to 0 B":
